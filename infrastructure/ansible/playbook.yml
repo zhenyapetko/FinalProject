@@ -1,0 +1,170 @@
+---
+- name: Configure portfolio server
+  hosts: web
+  become: yes
+  vars:
+    deploy_user: deployer
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - ufw
+          - curl
+        state: present
+
+    - name: Install docker-compose (binary)
+      get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-Linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Create symlink for docker-compose
+      file:
+        src: /usr/local/bin/docker-compose
+        dest: /usr/bin/docker-compose
+        state: link
+
+    - name: Check docker-compose installation
+      command: docker-compose --version
+      register: docker_compose_version
+      failed_when: false
+
+    - name: Debug docker-compose version
+      debug:
+        var: docker_compose_version.stdout
+
+    - name: Create deploy user
+      user:
+        name: "{{ deploy_user }}"
+        groups: sudo,docker
+        append: yes
+        shell: /bin/bash
+
+    - name: Copy SSH key for deploy user
+      authorized_key:
+        user: "{{ deploy_user }}"
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+    - name: Configure UFW
+      ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+
+    - name: Allow HTTP and HTTPS
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - 80
+        - 443
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Configure SSH server (main config)
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+        - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+      notify: restart ssh
+
+    - name: Fix hosting provider SSH override 
+      lineinfile:
+        path: /etc/ssh/sshd_config.d/40-hosting.conf
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+        state: present
+      notify: restart ssh
+
+    - name: Create app directory
+      file:
+        path: /home/{{ deploy_user }}/app
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+
+    - name: Create src directory
+      file:
+        path: /home/{{ deploy_user }}/app/src
+        state: directory
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+
+    - name: Create Dockerfile on server
+      copy:
+        content: |
+          FROM alpine:latest AS builder
+          RUN apk add --no-cache hugo git
+          WORKDIR /src
+          COPY ./src .
+          RUN if [ ! -d "themes/hugo-resume" ]; then git clone https://github.com/eddiewebb/hugo-resume themes/hugo-resume; fi
+          RUN hugo --minify
+
+          FROM nginx:alpine
+          COPY --from=builder /src/public /usr/share/nginx/html
+        dest: /home/{{ deploy_user }}/app/Dockerfile
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+
+    - name: Create docker-compose on server
+      copy:
+        content: |
+          version: '3.8'
+
+          services:
+            website:
+              image: my-hugo-site
+              container_name: portfolio-site
+              restart: unless-stopped
+              ports:
+                - "80:80"
+              networks:
+                - portfolio-net
+
+          networks:
+            portfolio-net:
+              driver: bridge
+        dest: /home/{{ deploy_user }}/app/docker-compose.yml
+        owner: "{{ deploy_user }}"
+        group: "{{ deploy_user }}"
+
+    - name: Build Docker image
+      community.docker.docker_image:
+        name: my-hugo-site
+        source: build
+        build:
+          path: /home/{{ deploy_user }}/app
+          dockerfile: Dockerfile
+        state: present
+
+    - name: Run Docker Compose
+      command: docker-compose -f /home/{{ deploy_user }}/app/docker-compose.yml up -d
+      args:
+        chdir: /home/{{ deploy_user }}/app
+
+    - name: Verify website is running
+      wait_for:
+        host: localhost
+        port: 80
+        timeout: 30
+
+  handlers:
+    - name: restart ssh
+      service:
+        name: ssh
+        state: restarted

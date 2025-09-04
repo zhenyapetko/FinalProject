@@ -1,0 +1,42 @@
+baseURL = 'https://ваш-сайт.ru/'
+languageCode = 'ru-ru'
+title = 'Евгений Петько - DevOps инженер'
+theme = 'hugo-resume'
+
+[params]
+    name = "Евгений Петько"
+    title = "DevOps инженер"
+    bio = "Специалист по автоматизации и CI/CD"
+    
+    # Контакты
+    email = "zhen.petko@gmail.com"
+    phone = "+375291441242"
+    location = "Минск, Беларусь"
+    
+    # Изображение
+    profileImage = "images/TechChat.png"
+    
+    # Настройки отображения
+    showContact = true
+    showBoards = true
+    showCertifications = true
+    showSocializations = true
+    
+    # Секции (только доступные)
+    sections = ["skills", "experience", "education", "contributions"]
+
+# Социальные сети
+[[params.social]]
+    name = "LinkedIn"
+    icon = "fab fa-linkedin"
+    url = "https://www.linkedin.com/in/zhenyapetko/"
+
+#[[params.social]]
+#   name = "GitLab"
+#    icon = "fab fa-github"
+#    url = "https://github.com/ваш-github"
+
+[[params.social]]
+    name = "Telegram"
+    icon = "fab fa-telegram"
+    url = "https://t.me/zhenyaaaaaaa"

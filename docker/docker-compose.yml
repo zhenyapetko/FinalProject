@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  website:
+    image: my-hugo-site  # Имя нашего образа
+    container_name: portfolio-site
+    restart: unless-stopped
+    ports:
+      - "80:80"  # Открываем порт 80 на сервере
+    networks:
+      - portfolio-net
+
+networks:
+  portfolio-net:
+    driver: bridge
