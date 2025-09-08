@@ -10,7 +10,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main', 
-                url: 'git@gitlab.com:your-username/FinalProject.git'
+                url: 'git@github.com:zhenyapetko/FinalProject.git'
+                credentialsId: 'ssh-private-key'
             }
         }
 
