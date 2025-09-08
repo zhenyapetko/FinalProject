@@ -1,0 +1,55 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+# собираем Docker образ
+build_image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t $DOCKER_IMAGE -f docker/Dockerfile .
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push $DOCKER_IMAGE
+  only:
+    - main
+
+# тесты
+test_ansible:
+  stage: test
+  image: python:3.11-alpine
+  before_script:
+    - pip install ansible
+  script:
+    - cd infrastructure/ansible
+    - ansible-playbook --syntax-check playbook.yml
+
+test_terraform:
+  stage: test
+  image: hashicorp/terraform:latest
+  script:
+    - cd infrastructure/terraform
+    - terraform validate
+
+# деплой на продакшен
+deploy_production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+  - apk add openssh-client
+  - mkdir -p ~/.ssh
+  - echo "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+  script:
+    - cd infrastructure/ansible
+    - ansible-playbook -i inventory.ini playbook.yml
+  only:
+    - main
+  environment:
+    name: production
+    url: http://$SERVER_IP
