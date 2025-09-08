@@ -3,15 +3,16 @@ pipeline {
 
     environment {
         SERVER_IP = '88.218.120.73'
-        SSH_KEY = credentials('ssh-private-key')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', 
-                url: 'git@github.com:zhenyapetko/FinalProject.git'
-                credentialsId: 'ssh-private-key'
+                git(
+                    branch: 'main', 
+                    url: 'git@github.com:zhenyapetko/FinalProject.git',
+                    credentialsId: 'ssh-private-key' 
+                )
             }
         }
 
@@ -30,24 +31,26 @@ pipeline {
 
         stage('Deploy to Production') {
             steps {
-                sh '''
-                echo "$SSH_KEY" > /tmp/ssh_key
-                chmod 600 /tmp/ssh_key
-                ssh -o StrictHostKeyChecking=no -i /tmp/ssh_key deployer@$SERVER_IP \
-                  "cd app && docker-compose down && docker-compose up -d --build"
-                '''
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'ssh-private-key', 
+                    keyFileVariable: 'SSH_KEY'
+                )]) {
+                    sh '''
+                    chmod 600 $SSH_KEY
+                    ssh -o StrictHostKeyChecking=no -i $SSH_KEY deployer@$SERVER_IP \
+                      "cd app && docker-compose down && docker-compose up -d --build"
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            slackSend (channel: '#deployments', 
-                      message: "✅ SUCCESS: Job ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+            echo '✅ Pipeline completed successfully!'
         }
         failure {
-            slackSend (channel: '#deployments',
-                      message: "❌ FAILED: Job ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+            echo '❌ Pipeline failed!'
         }
     }
 }
