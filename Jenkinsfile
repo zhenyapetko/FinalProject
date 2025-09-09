@@ -24,6 +24,11 @@ pipeline {
         stage('Install Tools') {
             steps {
                 sh '''
+                     # Устанавливаем Python и pip
+                    apt-get update && apt-get install -y python3 python3-pip
+                    # ИЛИ для Alpine:
+                    # apk add python3 py3-pip
+                    
                     # Устанавливаем Ansible
                     pip3 install ansible
                     
