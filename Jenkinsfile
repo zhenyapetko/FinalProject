@@ -21,7 +21,18 @@ pipeline {
             }
         }
 
-
+        stage('Check Files') {
+            steps {
+                sh '''
+                echo "📁 Current directory:"
+                pwd
+                echo "📁 Files in directory:"
+                ls -la
+                echo "📁 Looking for docker-compose.yml:"
+                find . -name "docker-compose.yml" -type f
+                '''
+            }
+        }
 
 
         stage('Build Docker Image') {
