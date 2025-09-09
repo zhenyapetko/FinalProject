@@ -46,31 +46,47 @@ pipeline {
     }
 }
 
-        stage('Run Tests') {
+        stage('Run Ansible Test') {
             steps {
-                sh 'cd infrastructure/ansible && ansible-playbook --syntax-check playbook.yml'
-                sh 'cd infrastructure/terraform && terraform validate'
+                sh '''
+                    docker run --rm \\
+                    -v $(pwd):/app \\
+                    alpine sh -c "apk add ansible && \\
+                    cd /app/infrastructure/ansible && \\
+                    ansible-playbook --syntax-check playbook.yml"
+                '''
+            }
+        }
+
+        stage('Run Terraform Test') {
+            steps {
+                sh '''
+                    docker run --rm \\
+                    -v $(pwd):/app \\
+                    hashicorp/terraform:light \\
+                    validate /app/infrastructure/terraform
+                '''
             }
         }
 
         stage('Deploy to Production') {
-    steps {
-        withCredentials([sshUserPrivateKey(
-            credentialsId: 'ssh-private-key', 
-            keyFileVariable: 'SSH_KEY'
-        )]) {
-            sh '''
-            chmod 600 $SSH_KEY
+            steps {
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'ssh-private-key', 
+                    keyFileVariable: 'SSH_KEY'
+                )]) {
+                    sh '''
+                    chmod 600 $SSH_KEY
             
-            # Копируем только нужные файлы на сервер
-            scp -i $SSH_KEY docker-compose.yml deployer@$SERVER_IP:~/app/
-            scp -i $SSH_KEY -r docker/ deployer@$SERVER_IP:~/app/
-            scp -i $SSH_KEY -r src/ deployer@$SERVER_IP:~/app/
+                    # Копируем только нужные файлы на сервер
+                    scp -i $SSH_KEY docker-compose.yml deployer@$SERVER_IP:~/app/
+                    scp -i $SSH_KEY -r docker/ deployer@$SERVER_IP:~/app/
+                    scp -i $SSH_KEY -r src/ deployer@$SERVER_IP:~/app/
             
-            # Запускаем на сервере
-            ssh -i $SSH_KEY deployer@$SERVER_IP \
-                "cd app && docker-compose down && docker-compose up -d --build"
-            '''
+                    # Запускаем на сервере
+                    ssh -i $SSH_KEY deployer@$SERVER_IP \
+                    "cd app && docker-compose down && docker-compose up -d --build"
+                    '''
         }
     }
 }
