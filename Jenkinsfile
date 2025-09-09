@@ -94,14 +94,17 @@ pipeline {
                     mkdir -p ~/.ssh
                     ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
             
-                    # Копируем только нужные файлы на сервер
-                    scp -o StrictHostKeyChecking=no -i $SSH_KEY docker-compose.yml deployer@$SERVER_IP:~/app/
-                    scp -o StrictHostKeyChecking=no -i $SSH_KEY -r docker/ deployer@$SERVER_IP:~/app/
-                    scp -o StrictHostKeyChecking=no -i $SSH_KEY -r src/ deployer@$SERVER_IP:~/app/
-            
-                    # Запускаем на сервере
+                    # Копируем весь проект
+                    rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no" \
+                        --include='docker/' \
+                        --include='docker/**' \
+                        --include='src/' \
+                        --include='src/**' \
+                        --exclude='*' \
+                        ./ deployer@$SERVER_IP:~/app/
+
                     ssh -o StrictHostKeyChecking=no -i $SSH_KEY deployer@$SERVER_IP \
-                        "cd app && docker-compose down && docker-compose up -d --build"
+                        "cd app && docker-compose -f docker/docker-compose.yml up -d --build"
                     '''
                 }
             }
