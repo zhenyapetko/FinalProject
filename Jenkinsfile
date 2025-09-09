@@ -21,6 +21,20 @@ pipeline {
             }
         }
 
+        stage('Install Tools') {
+            steps {
+                sh '''
+                    # Устанавливаем Ansible
+                    pip3 install ansible
+                    
+                    # Проверяем установку
+                    ansible --version
+                    ansible-playbook --version
+                '''
+            }
+        }
+
+
         stage('Build Docker Image') {
     steps {
         sh 'docker-compose -f docker/docker-compose.yml build'
