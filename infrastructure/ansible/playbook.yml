@@ -196,7 +196,7 @@
         port: 80
         timeout: 30
     
-        - name: Ensure Jenkins directory exists
+    - name: Ensure Jenkins directory exists
       file:
         path: /var/jenkins_home
         state: directory
