@@ -8,6 +8,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                sh 'mkdir -p ~/.ssh'
+                sh 'ssh-keyscan -H github.com >> ~/.ssh/known_hosts'
+                sh 'cat ~/.ssh/known_hosts | grep github.com || true'
+                sh 'ssh -T git@github.com || true'
+                
                 git(
                     branch: 'main', 
                     url: 'git@github.com:zhenyapetko/FinalProject.git',
