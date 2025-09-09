@@ -52,6 +52,24 @@ pipeline {
         }
     }
 
+        stage('Check SSH Connection') {
+            steps {
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'ssh-private-key', 
+                    keyFileVariable: 'SSH_KEY'
+             )]) {
+                    sh '''
+                    echo "🔧 Testing SSH connection..."
+                    chmod 600 $SSH_KEY
+                    echo "SSH key path: $SSH_KEY"
+                    ls -la $SSH_KEY
+                    echo "=== Trying to connect ==="
+                    ssh -i $SSH_KEY -v -o StrictHostKeyChecking=no deployer@$SERVER_IP "whoami" || echo "SSH connection failed"
+                    '''
+                }
+            }
+        }
+
         stage('Deploy to Production') {
             steps {
                 withCredentials([sshUserPrivateKey(
