@@ -108,7 +108,7 @@ pipeline {
             
                     # Запускаем на сервере
                     ssh -o StrictHostKeyChecking=no -i $SSH_KEY deployer@$SERVER_IP \
-                        "cd ~/app && docker-compose -f docker/docker-compose.yml down && docker-compose -f docker/docker-compose.yml up -d --build"
+                        "cd ~/app && docker-compose -f docker/docker-compose.yml down --remove-orphans && docker-compose -f docker/docker-compose.yml up -d --build"
                     '''
                 }
             }
