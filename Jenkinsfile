@@ -60,19 +60,23 @@ pipeline {
                 )]) {
                     sh '''
                     chmod 600 $SSH_KEY
+
+                    # Добавляем ключ сервера в known_hosts
+                    mkdir -p ~/.ssh
+                    ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
             
                     # Копируем только нужные файлы на сервер
-                    scp -i $SSH_KEY docker-compose.yml deployer@$SERVER_IP:~/app/
-                    scp -i $SSH_KEY -r docker/ deployer@$SERVER_IP:~/app/
-                    scp -i $SSH_KEY -r src/ deployer@$SERVER_IP:~/app/
+                    scp -o StrictHostKeyChecking=no -i $SSH_KEY docker-compose.yml deployer@$SERVER_IP:~/app/
+                    scp -o StrictHostKeyChecking=no -i $SSH_KEY -r docker/ deployer@$SERVER_IP:~/app/
+                    scp -o StrictHostKeyChecking=no -i $SSH_KEY -r src/ deployer@$SERVER_IP:~/app/
             
                     # Запускаем на сервере
-                    ssh -i $SSH_KEY deployer@$SERVER_IP \
-                    "cd app && docker-compose down && docker-compose up -d --build"
+                    ssh -o StrictHostKeyChecking=no -i $SSH_KEY deployer@$SERVER_IP \
+                        "cd app && docker-compose down && docker-compose up -d --build"
                     '''
+                }
+            }
         }
-    }
-}
     }
 
     post {
@@ -84,3 +88,25 @@ pipeline {
         }
     }
 }
+
+steps {
+        withCredentials([sshUserPrivateKey(
+            credentialsId: 'ssh-private-key', 
+            keyFileVariable: 'SSH_KEY'
+        )]) {
+            sh '''
+            chmod 600 $SSH_KEY
+            
+            # Добавляем ключ сервера в known_hosts
+            mkdir -p ~/.ssh
+            ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+            
+            # Копируем файлы на сервер
+            scp -o StrictHostKeyChecking=no -i $SSH_KEY docker-compose.yml deployer@$SERVER_IP:~/app/
+            scp -o StrictHostKeyChecking=no -i $SSH_KEY -r docker/ deployer@$SERVER_IP:~/app/
+            scp -o StrictHostKeyChecking=no -i $SSH_KEY -r src/ deployer@$SERVER_IP:~/app/
+            
+            # Запускаем на сервере
+            ssh -o StrictHostKeyChecking=no -i $SSH_KEY deployer@$SERVER_IP \
+                "cd app && docker-compose down && docker-compose up -d --build"
+            '''
