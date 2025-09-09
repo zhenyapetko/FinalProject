@@ -24,6 +24,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t my-hugo-site -f docker/Dockerfile .'
+                sh 'docker system prune -f'
             }
         }
 
