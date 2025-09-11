@@ -141,16 +141,16 @@ pipeline {
                 -d "parse_mode=Markdown" \
                 -d "text=${message}"
                 """
+                }
             }
-        }
-    }
+    
 
     
         success {
             echo '✅ Pipeline completed successfully!'
-        }
-        
+                }
+
         failure {
             echo '❌ Pipeline failed!'
-        }
+                }
     }
