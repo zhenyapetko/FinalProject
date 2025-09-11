@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         SERVER_IP = '88.218.120.73'
+        TELEGRAM_TOKEN = credentials('telegram-bot-token')
+        TELEGRAM_CHAT_ID = '193741879'
     }
 
     stages {
@@ -114,6 +116,30 @@ pipeline {
                         docker-compose -f docker/docker-compose.yml up -d --build"
                     '''
                 }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                def emoji = currentBuild.currentResult == 'SUCCESS' ? '✅' : '❌'
+                def message = """
+                ${emoji} *Build ${currentBuild.currentResult}*
+                📦 *Project:* ${env.JOB_NAME}
+                🔨 *Build:* #${env.BUILD_NUMBER}
+                🌿 *Branch:* ${env.GIT_BRANCH}
+                ⏰ *Duration:* ${currentBuild.durationString}
+                🔗 [View Build](${env.BUILD_URL})
+                """
+
+                sh """
+                curl -s -X POST \
+                "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                -d "chat_id=${TELEGRAM_CHAT_ID}" \
+                -d "parse_mode=Markdown" \
+                -d "text=${message}"
+                """
             }
         }
     }
