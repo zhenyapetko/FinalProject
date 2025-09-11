@@ -9,6 +9,15 @@ services:
       - "80:80"  # Открываем порт 80 на сервере
     networks:
       - portfolio-net
+  
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    ports:
+      - "9113:9113"
+    command:
+      - '-nginx.scrape-uri=http://website:80/nginx-status'
+    networks:
+      - portfolio-net
 
   prometheus:
     image: prom/prometheus:latest
