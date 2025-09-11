@@ -8,6 +8,21 @@ pipeline {
     }
 
     stages {
+
+        stage('Notify Start') {
+            steps {
+                script {
+                // Уведомление о начале
+                sh """
+                curl -s -X POST \
+                "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+                -d "chat_id=${TELEGRAM_CHAT_ID}" \
+                -d "parse_mode=Markdown" \
+                -d "text=🚀 *Build STARTED*%0A📦 *Project:* ${env.JOB_NAME}%0A🌿 *Branch:* ${env.GIT_BRANCH}%0A🔗 [View Build](${env.BUILD_URL})"
+                """
+                    }
+                }
+        }
         stage('Checkout') {
             steps {
                 sh 'mkdir -p ~/.ssh'
