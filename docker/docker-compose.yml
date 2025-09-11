@@ -10,6 +10,21 @@ services:
     networks:
       - portfolio-net
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - portfolio-net
+
+volumes:
+  prometheus_data:
+
 networks:
   portfolio-net:
     driver: bridge
