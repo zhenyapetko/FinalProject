@@ -119,8 +119,9 @@ pipeline {
             }
         }
     }
-    
+
     post {
+        
         always {
             script {
                 def emoji = currentBuild.currentResult == 'SUCCESS' ? '✅' : '❌'
@@ -144,12 +145,12 @@ pipeline {
         }
     }
 
-    post {
+    
         success {
             echo '✅ Pipeline completed successfully!'
         }
+        
         failure {
             echo '❌ Pipeline failed!'
         }
     }
-}
