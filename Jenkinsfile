@@ -154,3 +154,4 @@ pipeline {
             echo '❌ Pipeline failed!'
                 }
     }
+}
